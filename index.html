@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Enchantment Adviser - Optimal Anvil Order Calculator</title>
+    <style>
+        /* CSS Variables for theming */
+        :root {
+            --primary: #5e35b1;
+            --primary-dark: #4527a0;
+            --primary-light: #7e57c2;
+            --secondary: #26a69a;
+            --error: #e53935;
+            --warning: #fb8c00;
+            --success: #43a047;
+            --bg: #f5f5f5;
+            --surface: #ffffff;
+            --text: #212121;
+            --text-secondary: #757575;
+            --border: #e0e0e0;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-raised: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #121212;
+                --surface: #1e1e1e;
+                --text: #e0e0e0;
+                --text-secondary: #b0b0b0;
+                --border: #333333;
+                --shadow: 0 2px 4px rgba(0,0,0,0.3);
+                --shadow-raised: 0 4px 8px rgba(0,0,0,0.4);
+            }
+        }
+
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Card component */
+        .card {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--surface);
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(94, 53, 177, 0.2);
+        }
+
+        /* Enchantment grid */
+        .enchantment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .enchantment-item {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            transition: all 0.2s;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .enchantment-item:hover {
+            background: rgba(94, 53, 177, 0.05);
+            border-color: var(--primary-light);
+        }
+
+        .enchantment-item.selected {
+            background: rgba(94, 53, 177, 0.1);
+            border-color: var(--primary);
+        }
+
+        .enchantment-item.incompatible {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .enchantment-item.incompatible::after {
+            content: " (Incompatible)";
+            color: var(--error);
+            font-size: 12px;
+        }
+
+        .enchantment-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .enchantment-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .enchantment-name {
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .level-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .level-selector input {
+            width: 60px;
+        }
+
+        /* Button */
+        .btn {
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+        }
+
+        /* Results */
+        .results {
+            margin-top: 30px;
+        }
+
+        .step {
+            padding: 15px;
+            background: var(--bg);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .step-number {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .step-description {
+            margin-bottom: 5px;
+        }
+
+        .step-cost {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .step.too-expensive {
+            border-left-color: var(--error);
+            background: rgba(229, 57, 53, 0.05);
+        }
+
+        .total-cost {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--bg);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        /* Version toggle */
+        .version-toggle {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .version-toggle label {
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .enchantment-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Test output */
+        .test-output {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            color: #333;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .test-output {
+                background: #1a1a1a;
+                color: #e0e0e0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Minecraft Enchantment Adviser</h1>
+            <div class="subtitle">Calculate the optimal anvil order to minimize XP costs (Java Edition 1.20.x)</div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <h2>Configuration</h2>
+            <div class="version-toggle">
+                <label for="mc-version">Minecraft Version:</label>
+                <select id="mc-version">
+                    <option value="1.20" selected>1.20.x (Current)</option>
+                    <option value="1.12">1.12-1.19 (Legacy)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Step 1: Select Item Type</h2>
+            <div class="form-group">
+                <label for="item-type">Choose your item:</label>
+                <select id="item-type" aria-label="Select item type">
+                    <option value="">-- Select Item --</option>
+                    <option value="sword">Sword</option>
+                    <option value="pickaxe">Pickaxe</option>
+                    <option value="axe">Axe</option>
+                    <option value="shovel">Shovel</option>
+                    <option value="hoe">Hoe</option>
+                    <option value="bow">Bow</option>
+                    <option value="crossbow">Crossbow</option>
+                    <option value="trident">Trident</option>
+                    <option value="helmet">Helmet</option>
+                    <option value="chestplate">Chestplate</option>
+                    <option value="leggings">Leggings</option>
+                    <option value="boots">Boots</option>
+                    <option value="elytra">Elytra</option>
+                    <option value="shield">Shield</option>
+                    <option value="fishing_rod">Fishing Rod</option>
+                    <option value="flint_and_steel">Flint and Steel</option>
+                    <option value="shears">Shears</option>
+                    <option value="book">Book</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card" id="enchantments-card" style="display: none;">
+            <h2>Step 2: Select Enchantments</h2>
+            <div id="enchantments-container">
+                <div class="enchantment-grid" id="enchantment-grid"></div>
+            </div>
+            <button class="btn" id="calculate-btn" style="margin-top: 20px;">Calculate Optimal Order</button>
+        </div>
+
+        <div class="card" id="results-card" style="display: none;">
+            <h2>Results</h2>
+            <div id="results-container"></div>
+        </div>
+
+        <div class="card">
+            <h2>Test Suite Results</h2>
+            <button class="btn btn-secondary" id="run-tests">Run Tests</button>
+            <div class="test-output" id="test-output" style="display: none;"></div>
+        </div>
+    </main>
+
+    <script>
+        // ============================================================================
+        // ENCHANTMENT DATA
+        // ============================================================================
+        
+        const ENCHANTMENT_DATA = {
+            // Weapon enchantments
+            sharpness: {
+                name: "Sharpness",
+                maxLevel: 5,
+                applicableItems: ["sword", "axe"],
+                incompatibleWith: ["smite", "bane_of_arthropods"],
+                multiplier: 1
+            },
+            smite: {
+                name: "Smite",
+                maxLevel: 5,
+                applicableItems: ["sword", "axe"],
+                incompatibleWith: ["sharpness", "bane_of_arthropods"],
+                multiplier: 2
+            },
+            bane_of_arthropods: {
+                name: "Bane of Arthropods",
+                maxLevel: 5,
+                applicableItems: ["sword", "axe"],
+                incompatibleWith: ["sharpness", "smite"],
+                multiplier: 2
+            },
+            knockback: {
+                name: "Knockback",
+                maxLevel: 2,
+                applicableItems: ["sword"],
+                incompatibleWith: [],
+                multiplier: 2
+            },
+            fire_aspect: {
+                name: "Fire Aspect",
+                maxLevel: 2,
+                applicableItems: ["sword"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            looting: {
+                name: "Looting",
+                maxLevel: 3,
+                applicableItems: ["sword"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            sweeping_edge: {
+                name: "Sweeping Edge",
+                maxLevel: 3,
+                applicableItems: ["sword"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            
+            // Tool enchantments
+            efficiency: {
+                name: "Efficiency",
+                maxLevel: 5,
+                applicableItems: ["pickaxe", "axe", "shovel", "hoe", "shears"],
+                incompatibleWith: [],
+                multiplier: 1
+            },
+            silk_touch: {
+                name: "Silk Touch",
+                maxLevel: 1,
+                applicableItems: ["pickaxe", "axe", "shovel", "hoe", "shears"],
+                incompatibleWith: ["fortune"],
+                multiplier: 8
+            },
+            fortune: {
+                name: "Fortune",
+                maxLevel: 3,
+                applicableItems: ["pickaxe", "axe", "shovel", "hoe"],
+                incompatibleWith: ["silk_touch"],
+                multiplier: 4
+            },
+            
+            // Bow enchantments
+            power: {
+                name: "Power",
+                maxLevel: 5,
+                applicableItems: ["bow"],
+                incompatibleWith: [],
+                multiplier: 1
+            },
+            punch: {
+                name: "Punch",
+                maxLevel: 2,
+                applicableItems: ["bow"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            flame: {
+                name: "Flame",
+                maxLevel: 1,
+                applicableItems: ["bow"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            infinity: {
+                name: "Infinity",
+                maxLevel: 1,
+                applicableItems: ["bow"],
+                incompatibleWith: ["mending"],
+                multiplier: 8
+            },
+            
+            // Crossbow enchantments
+            multishot: {
+                name: "Multishot",
+                maxLevel: 1,
+                applicableItems: ["crossbow"],
+                incompatibleWith: ["piercing"],
+                multiplier: 4
+            },
+            piercing: {
+                name: "Piercing",
+                maxLevel: 4,
+                applicableItems: ["crossbow"],
+                incompatibleWith: ["multishot"],
+                multiplier: 1
+            },
+            quick_charge: {
+                name: "Quick Charge",
+                maxLevel: 3,
+                applicableItems: ["crossbow"],
+                incompatibleWith: [],
+                multiplier: 2
+            },
+            
+            // Trident enchantments
+            impaling: {
+                name: "Impaling",
+                maxLevel: 5,
+                applicableItems: ["trident"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            loyalty: {
+                name: "Loyalty",
+                maxLevel: 3,
+                applicableItems: ["trident"],
+                incompatibleWith: ["riptide"],
+                multiplier: 1
+            },
+            riptide: {
+                name: "Riptide",
+                maxLevel: 3,
+                applicableItems: ["trident"],
+                incompatibleWith: ["loyalty", "channeling"],
+                multiplier: 4
+            },
+            channeling: {
+                name: "Channeling",
+                maxLevel: 1,
+                applicableItems: ["trident"],
+                incompatibleWith: ["riptide"],
+                multiplier: 8
+            },
+            
+            // Armor enchantments
+            protection: {
+                name: "Protection",
+                maxLevel: 4,
+                applicableItems: ["helmet", "chestplate", "leggings", "boots"],
+                incompatibleWith: ["fire_protection", "blast_protection", "projectile_protection"],
+                multiplier: 1
+            },
+            fire_protection: {
+                name: "Fire Protection",
+                maxLevel: 4,
+                applicableItems: ["helmet", "chestplate", "leggings", "boots"],
+                incompatibleWith: ["protection", "blast_protection", "projectile_protection"],
+                multiplier: 2
+            },
+            blast_protection: {
+                name: "Blast Protection",
+                maxLevel: 4,
+                applicableItems: ["helmet", "chestplate", "leggings", "boots"],
+                incompatibleWith: ["protection", "fire_protection", "projectile_protection"],
+                multiplier: 4
+            },
+            projectile_protection: {
+                name: "Projectile Protection",
+                maxLevel: 4,
+                applicableItems: ["helmet", "chestplate", "leggings", "boots"],
+                incompatibleWith: ["protection", "fire_protection", "blast_protection"],
+                multiplier: 2
+            },
+            thorns: {
+                name: "Thorns",
+                maxLevel: 3,
+                applicableItems: ["helmet", "chestplate", "leggings", "boots"],
+                incompatibleWith: [],
+                multiplier: 8
+            },
+            respiration: {
+                name: "Respiration",
+                maxLevel: 3,
+                applicableItems: ["helmet"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            aqua_affinity: {
+                name: "Aqua Affinity",
+                maxLevel: 1,
+                applicableItems: ["helmet"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            depth_strider: {
+                name: "Depth Strider",
+                maxLevel: 3,
+                applicableItems: ["boots"],
+                incompatibleWith: ["frost_walker"],
+                multiplier: 4
+            },
+            frost_walker: {
+                name: "Frost Walker",
+                maxLevel: 2,
+                applicableItems: ["boots"],
+                incompatibleWith: ["depth_strider"],
+                multiplier: 4
+            },
+            feather_falling: {
+                name: "Feather Falling",
+                maxLevel: 4,
+                applicableItems: ["boots"],
+                incompatibleWith: [],
+                multiplier: 2
+            },
+            soul_speed: {
+                name: "Soul Speed",
+                maxLevel: 3,
+                applicableItems: ["boots"],
+                incompatibleWith: [],
+                multiplier: 8
+            },
+            swift_sneak: {
+                name: "Swift Sneak",
+                maxLevel: 3,
+                applicableItems: ["leggings"],
+                incompatibleWith: [],
+                multiplier: 8
+            },
+            
+            // Universal enchantments
+            unbreaking: {
+                name: "Unbreaking",
+                maxLevel: 3,
+                applicableItems: ["sword", "pickaxe", "axe", "shovel", "hoe", "bow", "crossbow", "trident", 
+                                 "helmet", "chestplate", "leggings", "boots", "elytra", "shield", 
+                                 "fishing_rod", "flint_and_steel", "shears"],
+                incompatibleWith: [],
+                multiplier: 2
+            },
+            mending: {
+                name: "Mending",
+                maxLevel: 1,
+                applicableItems: ["sword", "pickaxe", "axe", "shovel", "hoe", "bow", "crossbow", "trident", 
+                                 "helmet", "chestplate", "leggings", "boots", "elytra", "shield", 
+                                 "fishing_rod", "flint_and_steel", "shears"],
+                incompatibleWith: ["infinity"],
+                multiplier: 4
+            },
+            curse_of_vanishing: {
+                name: "Curse of Vanishing",
+                maxLevel: 1,
+                applicableItems: ["sword", "pickaxe", "axe", "shovel", "hoe", "bow", "crossbow", "trident", 
+                                 "helmet", "chestplate", "leggings", "boots", "elytra", "shield", 
+                                 "fishing_rod", "flint_and_steel", "shears", "book"],
+                incompatibleWith: [],
+                multiplier: 8
+            },
+            curse_of_binding: {
+                name: "Curse of Binding",
+                maxLevel: 1,
+                applicableItems: ["helmet", "chestplate", "leggings", "boots", "elytra"],
+                incompatibleWith: [],
+                multiplier: 8
+            },
+            
+            // Fishing rod enchantments
+            luck_of_the_sea: {
+                name: "Luck of the Sea",
+                maxLevel: 3,
+                applicableItems: ["fishing_rod"],
+                incompatibleWith: [],
+                multiplier: 4
+            },
+            lure: {
+                name: "Lure",
+                maxLevel: 3,
+                applicableItems: ["fishing_rod"],
+                incompatibleWith: [],
+                multiplier: 4
+            }
+        };
+
+        // ============================================================================
+        // ANVIL MECHANICS
+        // ============================================================================
+        
+        class AnvilMechanics {
+            constructor(version = "1.20") {
+                this.version = version;
+                this.TOO_EXPENSIVE_LIMIT = 40;
+            }
+        
+            // Linear prior work penalty in cost (matches Java anvil behavior)
+            priorWorkCost(penalty) {
+                return penalty;
+            }
+        
+            /**
+             * Calculate the cost of combining two artifacts in an anvil
+             * Rules:
+             * - Applying a book to an item: incompatibilities are enforced, incompatible enchants add cost but don't apply.
+             * - Combining book+book: incompatibilities are ignored (books can store any combo).
+             * - Enchantments not applicable to the item add cost but don't apply (defensive).
+             */
+            combine(target, sacrifice) {
+                const result = {
+                    enchantments: {...target.enchantments},
+                    workPenalty: Math.max(target.workPenalty, sacrifice.workPenalty) + 1,
+                    type: target.type
+                };
+        
+                let cost = this.priorWorkCost(target.workPenalty) + this.priorWorkCost(sacrifice.workPenalty);
+                const applyingToItem = result.type !== 'book';
+        
+                for (const [enchId, sacrificeLevel] of Object.entries(sacrifice.enchantments)) {
+                    const enchData = ENCHANTMENT_DATA[enchId];
+                    if (!enchData) continue;
+        
+                    if (applyingToItem) {
+                        // Skip if not applicable to this item; still pay cost
+                        if (!enchData.applicableItems.includes(result.type)) {
+                            cost += enchData.multiplier * sacrificeLevel;
+                            continue;
+                        }
+                        // Incompatibilities enforced only on items
+                        if (this.isIncompatible(result.enchantments, enchId)) {
+                            cost += enchData.multiplier * sacrificeLevel;
+                            continue;
+                        }
+                    }
+        
+                    const currentLevel = result.enchantments[enchId] || 0;
+                    let newLevel = sacrificeLevel;
+        
+                    if (currentLevel > 0) {
+                        if (currentLevel === sacrificeLevel && currentLevel < enchData.maxLevel) {
+                            newLevel = currentLevel + 1;
+                        } else {
+                            newLevel = Math.max(currentLevel, sacrificeLevel);
+                        }
+                    }
+        
+                    // Cost uses resulting level of that enchantment
+                    cost += enchData.multiplier * newLevel;
+                    result.enchantments[enchId] = Math.min(newLevel, enchData.maxLevel);
+                }
+        
+                const tooExpensive = cost >= this.TOO_EXPENSIVE_LIMIT;
+                return { cost, result, tooExpensive };
+            }
+        
+            isIncompatible(currentEnchantments, newEnchId) {
+                const newEnchData = ENCHANTMENT_DATA[newEnchId];
+                if (!newEnchData) return false;
+        
+                for (const existingEnchId of Object.keys(currentEnchantments)) {
+                    const existingEnchData = ENCHANTMENT_DATA[existingEnchId];
+                    if (!existingEnchData) continue;
+        
+                    if (newEnchData.incompatibleWith.includes(existingEnchId)) return true;
+                    if (existingEnchData.incompatibleWith.includes(newEnchId)) return true;
+                }
+                return false;
+            }
+        }
+
+        // ============================================================================
+        // OPTIMAL ORDER SOLVER
+        // ============================================================================
+        
+        class OptimalOrderSolver {
+            constructor(anvilMechanics) {
+                this.anvil = anvilMechanics;
+                this.cache = new Map();
+            }
+        
+            solve(itemType, targetEnchantments) {
+                this.cache.clear();
+        
+                // Create one book per enchantment
+                const books = [];
+                for (const [enchId, level] of Object.entries(targetEnchantments)) {
+                    books.push({
+                        id: `book_${books.length}`,
+                        type: 'book',
+                        enchantments: { [enchId]: level },
+                        workPenalty: 0
+                    });
+                }
+        
+                // Base item
+                const baseItem = {
+                    id: 'item',
+                    type: itemType,
+                    enchantments: {},
+                    workPenalty: 0
+                };
+        
+                const artifacts = [baseItem, ...books];
+                const result = this.findOptimal(artifacts);
+        
+                if (!result) {
+                    return {
+                        steps: [],
+                        totalCost: Infinity,
+                        success: false,
+                        message: "No valid combination found (all paths lead to 'Too Expensive' or end on a book)"
+                    };
+                }
+        
+                return {
+                    steps: this.reconstructSteps(result.tree),
+                    totalCost: result.cost,
+                    success: true
+                };
+            }
+        
+            findOptimal(artifacts) {
+                // Must end with the item, not a book
+                if (artifacts.length === 1) {
+                    const only = artifacts[0];
+                    if (only.type === 'book') return null;
+                    return { cost: 0, artifact: only, tree: { type: 'leaf', artifact: only } };
+                }
+        
+                const stateKey = this.getStateKey(artifacts);
+                if (this.cache.has(stateKey)) {
+                    return this.cache.get(stateKey);
+                }
+        
+                let bestResult = null;
+                let bestCost = Infinity;
+        
+                for (let i = 0; i < artifacts.length; i++) {
+                    for (let j = i + 1; j < artifacts.length; j++) {
+                        const A = artifacts[i];
+                        const B = artifacts[j];
+        
+                        // Case 1: book + book -> book (only one ordering to avoid mirror states)
+                        if (A.type === 'book' && B.type === 'book') {
+                            const combineResult = this.anvil.combine(A, B);
+                            if (!combineResult.tooExpensive) {
+                                const newArtifacts = artifacts.filter((_, idx) => idx !== i && idx !== j);
+                                newArtifacts.push(combineResult.result);
+                                const subResult = this.findOptimal(newArtifacts);
+                                if (subResult) {
+                                    const totalCost = combineResult.cost + subResult.cost;
+                                    if (totalCost < bestCost) {
+                                        bestCost = totalCost;
+                                        bestResult = {
+                                            cost: totalCost,
+                                            artifact: subResult.artifact,
+                                            tree: {
+                                                type: 'combine',
+                                                target: A,
+                                                sacrifice: B,
+                                                cost: combineResult.cost,
+                                                result: combineResult.result,
+                                                next: subResult.tree
+                                            }
+                                        };
+                                    }
+                                }
+                            }
+                        }
+        
+                        // Case 2: item + book -> item (item must be the target)
+                        if (A.type !== 'book' && B.type === 'book') {
+                            const combineResult = this.anvil.combine(A, B);
+                            if (!combineResult.tooExpensive) {
+                                const newArtifacts = artifacts.filter((_, idx) => idx !== i && idx !== j);
+                                newArtifacts.push(combineResult.result);
+                                const subResult = this.findOptimal(newArtifacts);
+                                if (subResult) {
+                                    const totalCost = combineResult.cost + subResult.cost;
+                                    if (totalCost < bestCost) {
+                                        bestCost = totalCost;
+                                        bestResult = {
+                                            cost: totalCost,
+                                            artifact: subResult.artifact,
+                                            tree: {
+                                                type: 'combine',
+                                                target: A,
+                                                sacrifice: B,
+                                                cost: combineResult.cost,
+                                                result: combineResult.result,
+                                                next: subResult.tree
+                                            }
+                                        };
+                                    }
+                                }
+                            }
+                        } else if (B.type !== 'book' && A.type === 'book') {
+                            const combineResult = this.anvil.combine(B, A);
+                            if (!combineResult.tooExpensive) {
+                                const newArtifacts = artifacts.filter((_, idx) => idx !== i && idx !== j);
+                                newArtifacts.push(combineResult.result);
+                                const subResult = this.findOptimal(newArtifacts);
+                                if (subResult) {
+                                    const totalCost = combineResult.cost + subResult.cost;
+                                    if (totalCost < bestCost) {
+                                        bestCost = totalCost;
+                                        bestResult = {
+                                            cost: totalCost,
+                                            artifact: subResult.artifact,
+                                            tree: {
+                                                type: 'combine',
+                                                target: B,
+                                                sacrifice: A,
+                                                cost: combineResult.cost,
+                                                result: combineResult.result,
+                                                next: subResult.tree
+                                            }
+                                        };
+                                    }
+                                }
+                            }
+                        }
+        
+                        // Case 3: item + item is not allowed; ignore
+                    }
+                }
+        
+                this.cache.set(stateKey, bestResult);
+                return bestResult;
+            }
+        
+            getStateKey(artifacts) {
+                const sorted = artifacts.map(a => {
+                    const enchStr = Object.entries(a.enchantments)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([k, v]) => `${k}:${v}`)
+                        .join(',');
+                    return `${a.type}[${enchStr}]@${a.workPenalty}`;
+                }).sort();
+                return sorted.join('|');
+            }
+        
+            reconstructSteps(tree) {
+                const steps = [];
+                let stepNum = 1;
+        
+                function traverse(node) {
+                    if (node.type === 'combine') {
+                        steps.push({
+                            number: stepNum++,
+                            action: 'combine',
+                            target: node.target,
+                            sacrifice: node.sacrifice,
+                            result: node.result,
+                            cost: node.cost
+                        });
+                        traverse(node.next);
+                    }
+                }
+        
+                traverse(tree);
+                return steps;
+            }
+        }
+
+        // ============================================================================
+        // UI CONTROLLER
+        // ============================================================================
+        
+        class EnchantmentAdviser {
+            constructor() {
+                this.selectedItem = null;
+                this.selectedEnchantments = {};
+                this.anvilMechanics = new AnvilMechanics("1.20");
+                this.solver = new OptimalOrderSolver(this.anvilMechanics);
+                
+                this.initializeUI();
+                this.loadFromLocalStorage();
+                this.updateShareURL();
+            }
+
+            initializeUI() {
+                // Item selector
+                const itemSelect = document.getElementById('item-type');
+                itemSelect.addEventListener('change', (e) => {
+                    this.selectedItem = e.target.value;
+                    this.selectedEnchantments = {};
+                    this.renderEnchantments();
+                    this.saveToLocalStorage();
+                });
+
+                // Version selector
+                const versionSelect = document.getElementById('mc-version');
+                versionSelect.addEventListener('change', (e) => {
+                    this.anvilMechanics = new AnvilMechanics(e.target.value);
+                    this.solver = new OptimalOrderSolver(this.anvilMechanics);
+                });
+
+                // Calculate button
+                document.getElementById('calculate-btn').addEventListener('click', () => {
+                    this.calculateOptimalOrder();
+                });
+
+                // Test button
+                document.getElementById('run-tests').addEventListener('click', () => {
+                    this.runTests();
+                });
+            }
+
+            renderEnchantments() {
+                const container = document.getElementById('enchantments-card');
+                const grid = document.getElementById('enchantment-grid');
+                
+                if (!this.selectedItem) {
+                    container.style.display = 'none';
+                    return;
+                }
+                
+                container.style.display = 'block';
+                grid.innerHTML = '';
+
+                // Get applicable enchantments
+                const applicableEnchantments = Object.entries(ENCHANTMENT_DATA)
+                    .filter(([_, data]) => data.applicableItems.includes(this.selectedItem))
+                    .sort(([a], [b]) => ENCHANTMENT_DATA[a].name.localeCompare(ENCHANTMENT_DATA[b].name));
+
+                for (const [enchId, enchData] of applicableEnchantments) {
+                    const enchItem = document.createElement('div');
+                    enchItem.className = 'enchantment-item';
+                    enchItem.id = `ench-${enchId}`;
+
+                    const isIncompatible = this.checkIncompatibility(enchId);
+                    if (isIncompatible) {
+                        enchItem.classList.add('incompatible');
+                    }
+
+                    enchItem.innerHTML = `
+                        <div class="enchantment-header">
+                            <input type="checkbox" 
+                                   class="enchantment-checkbox" 
+                                   id="check-${enchId}"
+                                   ${this.selectedEnchantments[enchId] ? 'checked' : ''}
+                                   ${isIncompatible ? 'disabled' : ''}
+                                   aria-label="Select ${enchData.name}">
+                            <label for="check-${enchId}" class="enchantment-name">${enchData.name}</label>
+                        </div>
+                        <div class="level-selector" style="${this.selectedEnchantments[enchId] ? '' : 'display: none'}">
+                            <label for="level-${enchId}">Level:</label>
+                            <input type="number" 
+                                   id="level-${enchId}" 
+                                   min="1" 
+                                   max="${enchData.maxLevel}" 
+                                   value="${this.selectedEnchantments[enchId] || enchData.maxLevel}"
+                                   aria-label="${enchData.name} level">
+                            <span>/ ${enchData.maxLevel}</span>
+                        </div>
+                    `;
+
+                    // Add event listeners
+                    const checkbox = enchItem.querySelector('.enchantment-checkbox');
+                    const levelInput = enchItem.querySelector(`#level-${enchId}`);
+                    const levelSelector = enchItem.querySelector('.level-selector');
+
+                    checkbox.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            this.selectedEnchantments[enchId] = parseInt(levelInput.value);
+                            levelSelector.style.display = '';
+                            enchItem.classList.add('selected');
+                        } else {
+                            delete this.selectedEnchantments[enchId];
+                            levelSelector.style.display = 'none';
+                            enchItem.classList.remove('selected');
+                        }
+                        this.updateIncompatibilities();
+                        this.saveToLocalStorage();
+                    });
+
+                    levelInput.addEventListener('change', (e) => {
+                        const level = Math.min(Math.max(1, parseInt(e.target.value) || 1), enchData.maxLevel);
+                        e.target.value = level;
+                        if (this.selectedEnchantments[enchId]) {
+                            this.selectedEnchantments[enchId] = level;
+                            this.saveToLocalStorage();
+                        }
+                    });
+
+                    if (this.selectedEnchantments[enchId]) {
+                        enchItem.classList.add('selected');
+                    }
+
+                    grid.appendChild(enchItem);
+                }
+            }
+
+            checkIncompatibility(enchId) {
+                const enchData = ENCHANTMENT_DATA[enchId];
+                
+                for (const selectedEnchId of Object.keys(this.selectedEnchantments)) {
+                    if (enchData.incompatibleWith.includes(selectedEnchId)) {
+                        return true;
+                    }
+                    const selectedEnchData = ENCHANTMENT_DATA[selectedEnchId];
+                    if (selectedEnchData.incompatibleWith.includes(enchId)) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+
+            updateIncompatibilities() {
+                const enchantments = document.querySelectorAll('.enchantment-item');
+                
+                enchantments.forEach(item => {
+                    const enchId = item.id.replace('ench-', '');
+                    const checkbox = item.querySelector('.enchantment-checkbox');
+                    
+                    if (!this.selectedEnchantments[enchId]) {
+                        const isIncompatible = this.checkIncompatibility(enchId);
+                        
+                        if (isIncompatible) {
+                            item.classList.add('incompatible');
+                            checkbox.disabled = true;
+                        } else {
+                            item.classList.remove('incompatible');
+                            checkbox.disabled = false;
+                        }
+                    }
+                });
+            }
+
+            calculateOptimalOrder() {
+                if (Object.keys(this.selectedEnchantments).length === 0) {
+                    alert('Please select at least one enchantment');
+                    return;
+                }
+
+                const result = this.solver.solve(this.selectedItem, this.selectedEnchantments);
+                this.displayResults(result);
+            }
+
+            displayResults(result) {
+                const container = document.getElementById('results-container');
+                const card = document.getElementById('results-card');
+                
+                card.style.display = 'block';
+                container.innerHTML = '';
+
+                if (!result.success) {
+                    container.innerHTML = `
+                        <div class="step too-expensive">
+                            <div class="step-description">${result.message}</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let runningTotal = 0;
+
+                result.steps.forEach(step => {
+                    runningTotal += step.cost;
+                    
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'step';
+                    if (step.cost >= this.anvilMechanics.TOO_EXPENSIVE_LIMIT) {
+                        stepDiv.classList.add('too-expensive');
+                    }
+
+                    const targetDesc = this.getArtifactDescription(step.target);
+                    const sacrificeDesc = this.getArtifactDescription(step.sacrifice);
+                    const resultDesc = this.getArtifactDescription(step.result);
+
+                    stepDiv.innerHTML = `
+                        <div class="step-number">Step ${step.number}</div>
+                        <div class="step-description">
+                            Combine: ${targetDesc} + ${sacrificeDesc} → ${resultDesc}
+                        </div>
+                        <div class="step-cost">
+                            Cost: ${step.cost} levels | Running Total: ${runningTotal} levels
+                            ${step.cost >= this.anvilMechanics.TOO_EXPENSIVE_LIMIT ? ' (TOO EXPENSIVE!)' : ''}
+                        </div>
+                    `;
+
+                    container.appendChild(stepDiv);
+                });
+
+                const totalDiv = document.createElement('div');
+                totalDiv.className = 'total-cost';
+                totalDiv.textContent = `Total XP Cost: ${result.totalCost} levels`;
+                container.appendChild(totalDiv);
+            }
+
+            getArtifactDescription(artifact) {
+                if (artifact.type === 'book') {
+                    const enchStrs = Object.entries(artifact.enchantments)
+                        .map(([enchId, level]) => {
+                            const enchData = ENCHANTMENT_DATA[enchId];
+                            return `${enchData.name} ${this.romanNumeral(level)}`;
+                        });
+                    return `Book (${enchStrs.join(', ')})`;
+                } else {
+                    const itemName = artifact.type.charAt(0).toUpperCase() + artifact.type.slice(1).replace('_', ' ');
+                    const enchCount = Object.keys(artifact.enchantments).length;
+                    if (enchCount === 0) {
+                        return itemName;
+                    }
+                    const enchStrs = Object.entries(artifact.enchantments)
+                        .map(([enchId, level]) => {
+                            const enchData = ENCHANTMENT_DATA[enchId];
+                            return `${enchData.name} ${this.romanNumeral(level)}`;
+                        });
+                    return `${itemName} (${enchStrs.join(', ')})`;
+                }
+            }
+
+            romanNumeral(num) {
+                if (!Number.isFinite(num) || num <= 0) return 'I';
+                const map = [
+                    ['M', 1000], ['CM', 900], ['D', 500], ['CD', 400],
+                    ['C', 100], ['XC', 90], ['L', 50], ['XL', 40],
+                    ['X', 10], ['IX', 9], ['V', 5], ['IV', 4], ['I', 1]
+                ];
+                let n = Math.floor(num);
+                let res = '';
+                for (const [sym, val] of map) {
+                    while (n >= val) {
+                        res += sym;
+                        n -= val;
+                    }
+                }
+                return res;
+            }
+
+            saveToLocalStorage() {
+                const state = {
+                    selectedItem: this.selectedItem,
+                    selectedEnchantments: this.selectedEnchantments
+                };
+                localStorage.setItem('enchantmentAdviserState', JSON.stringify(state));
+                this.updateShareURL();
+            }
+
+            loadFromLocalStorage() {
+                const savedState = localStorage.getItem('enchantmentAdviserState');
+                if (savedState) {
+                    try {
+                        const state = JSON.parse(savedState);
+                        this.selectedItem = state.selectedItem;
+                        this.selectedEnchantments = state.selectedEnchantments || {};
+                        
+                        if (this.selectedItem) {
+                            document.getElementById('item-type').value = this.selectedItem;
+                            this.renderEnchantments();
+                        }
+                    } catch (e) {
+                        console.error('Failed to load saved state:', e);
+                    }
+                }
+
+                // Check URL parameters
+                const params = new URLSearchParams(window.location.search);
+                if (params.has('item') && params.has('enchants')) {
+                    try {
+                        this.selectedItem = params.get('item');
+                        this.selectedEnchantments = JSON.parse(params.get('enchants'));
+                        document.getElementById('item-type').value = this.selectedItem;
+                        this.renderEnchantments();
+                    } catch (e) {
+                        console.error('Failed to parse URL parameters:', e);
+                    }
+                }
+            }
+
+            updateShareURL() {
+                if (this.selectedItem && Object.keys(this.selectedEnchantments).length > 0) {
+                    const params = new URLSearchParams({
+                        item: this.selectedItem,
+                        enchants: JSON.stringify(this.selectedEnchantments)
+                    });
+                    const newURL = `${window.location.pathname}?${params.toString()}`;
+                    window.history.replaceState({}, '', newURL);
+                }
+            }
+
+            // ============================================================================
+            // TEST SUITE
+            // ============================================================================
+            
+            runTests() {
+                const output = document.getElementById('test-output');
+                output.style.display = 'block';
+                output.textContent = 'Running tests...\n\n';
+
+                const tests = [
+                    {
+                        name: 'Test 1: Pickaxe with Efficiency V, Unbreaking III, Mending, Fortune III',
+                        item: 'pickaxe',
+                        enchantments: {
+                            efficiency: 5,
+                            unbreaking: 3,
+                            mending: 1,
+                            fortune: 3
+                        }
+                    },
+                    {
+                        name: 'Test 2: Sword with Sharpness V, Looting III, Sweeping Edge III',
+                        item: 'sword',
+                        enchantments: {
+                            sharpness: 5,
+                            looting: 3,
+                            sweeping_edge: 3
+                        }
+                    },
+                    {
+                        name: 'Test 3: Bow with Power V and Infinity (no Mending)',
+                        item: 'bow',
+                        enchantments: {
+                            power: 5,
+                            infinity: 1
+                        }
+                    },
+                    {
+                        name: 'Test 4: Conflict test - Silk Touch + Fortune (should fail)',
+                        item: 'pickaxe',
+                        enchantments: {
+                            silk_touch: 1,
+                            fortune: 3
+                        },
+                        expectConflict: true
+                    },
+                    {
+                        name: 'Test 5: Boots with all protections (should have conflicts)',
+                        item: 'boots',
+                        enchantments: {
+                            protection: 4,
+                            feather_falling: 4,
+                            depth_strider: 3,
+                            unbreaking: 3,
+                            mending: 1
+                        }
+                    },
+                    {
+                        name: 'Test 6: Complex armor - Chestplate with Thorns',
+                        item: 'chestplate',
+                        enchantments: {
+                            protection: 4,
+                            thorns: 3,
+                            unbreaking: 3,
+                            mending: 1
+                        }
+                    }
+                ];
+
+                tests.forEach(test => {
+                    output.textContent += `${test.name}\n`;
+                    output.textContent += '='.repeat(60) + '\n';
+
+                    // Check for conflicts
+                    const conflicts = [];
+                    const enchIds = Object.keys(test.enchantments);
+                    for (let i = 0; i < enchIds.length; i++) {
+                        for (let j = i + 1; j < enchIds.length; j++) {
+                            const ench1 = ENCHANTMENT_DATA[enchIds[i]];
+                            const ench2 = ENCHANTMENT_DATA[enchIds[j]];
+                            if (ench1.incompatibleWith.includes(enchIds[j]) || 
+                                ench2.incompatibleWith.includes(enchIds[i])) {
+                                conflicts.push(`${ench1.name} conflicts with ${ench2.name}`);
+                            }
+                        }
+                    }
+
+                    if (conflicts.length > 0) {
+                        output.textContent += `Conflicts detected: ${conflicts.join(', ')}\n`;
+                        if (!test.expectConflict) {
+                            output.textContent += 'Removing conflicting enchantments...\n';
+                            // Remove conflicting enchantments for test
+                            const filteredEnchantments = {};
+                            for (const [enchId, level] of Object.entries(test.enchantments)) {
+                                let hasConflict = false;
+                                for (const otherId of Object.keys(filteredEnchantments)) {
+                                    const enchData = ENCHANTMENT_DATA[enchId];
+                                    const otherData = ENCHANTMENT_DATA[otherId];
+                                    if (enchData.incompatibleWith.includes(otherId) ||
+                                        otherData.incompatibleWith.includes(enchId)) {
+                                        hasConflict = true;
+                                        break;
+                                    }
+                                }
+                                if (!hasConflict) {
+                                    filteredEnchantments[enchId] = level;
+                                }
+                            }
+                            test.enchantments = filteredEnchantments;
+                        }
+                    }
+
+                    const result = this.solver.solve(test.item, test.enchantments);
+                    
+                    if (result.success) {
+                        output.textContent += `Success! Total cost: ${result.totalCost} levels\n`;
+                        output.textContent += `Number of steps: ${result.steps.length}\n`;
+                        result.steps.forEach(step => {
+                            output.textContent += `  Step ${step.number}: Cost ${step.cost} levels\n`;
+                        });
+                    } else {
+                        output.textContent += `Failed: ${result.message}\n`;
+                    }
+                    
+                    output.textContent += '\n';
+                });
+
+                output.textContent += 'All tests completed!\n';
+            }
+        }
+
+        // Initialize the application
+        const app = new EnchantmentAdviser();
+    </script>
+</body>
+</html>
